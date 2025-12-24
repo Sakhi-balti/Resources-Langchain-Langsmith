@@ -5,8 +5,11 @@ from langchain_community.tools import DuckDuckGoSearchRun
 from langchain.agents import create_react_agent, AgentExecutor
 from langchain import hub
 from dotenv import load_dotenv
+import os
 
 load_dotenv()
+HF_KEY = os.getenv('HF_KEY')
+os.environ['LANGCHAIN_PROJECT'] = 'ReAct-Agent'
 
 search_tool = DuckDuckGoSearchRun()
 
@@ -21,7 +24,13 @@ def get_weather_data(city: str) -> str:
 
   return response.json()
 
-llm = ChatOpenAI()
+llm = ChatOpenAI(
+    model="deepseek-ai/DeepSeek-V3-0324",
+    api_key=HF_KEY,
+    base_url="https://router.huggingface.co/v1",
+    temperature=0.7,
+    max_tokens=500
+)
 
 # Step 2: Pull the ReAct prompt from LangChain Hub
 prompt = hub.pull("hwchase17/react")  # pulls the standard ReAct agent prompt
@@ -46,7 +55,7 @@ agent_executor = AgentExecutor(
 # Identify the birthplace city of Kalpana Chawla (search) and give its current temperature.
 
 # Step 5: Invoke
-response = agent_executor.invoke({"input": "What is the current temp of gurgaon"})
+response = agent_executor.invoke({"input": "What is the current temp of Islamabad"})
 print(response)
 
 print(response['output'])
