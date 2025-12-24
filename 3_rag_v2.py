@@ -9,6 +9,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableParallel, RunnablePassthrough, RunnableLambda
 from langchain_core.output_parsers import StrOutputParser
@@ -19,7 +20,8 @@ from langchain_core.output_parsers import StrOutputParser
 # LANGCHAIN_PROJECT=pdf_rag_demo
 
 load_dotenv()
-
+HF_KEY = os.getenv('HF_KEY')
+os.environ['LANGCHAIN_PROJECT'] = 'RAG-Chat'
 PDF_PATH = "islr.pdf"  # change to your file
 
 # ---------- traced setup steps ----------
@@ -37,7 +39,10 @@ def split_documents(docs, chunk_size=1000, chunk_overlap=150):
 
 @traceable(name="build_vectorstore")
 def build_vectorstore(splits):
-    emb = OpenAIEmbeddings(model="text-embedding-3-small")
+    emb = HuggingFaceEndpointEmbeddings(
+    model="sentence-transformers/all-MiniLM-L6-v2",  # Popular free model
+    huggingfacehub_api_token=HF_KEY
+)
     # FAISS.from_documents internally calls the embedding model:
     vs = FAISS.from_documents(splits, emb)
     return vs
@@ -51,7 +56,13 @@ def setup_pipeline(pdf_path: str):
     return vs
 
 # ---------- pipeline ----------
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+llm = ChatOpenAI(
+    model="deepseek-ai/DeepSeek-V3-0324",
+    api_key=HF_KEY,
+    base_url="https://router.huggingface.co/v1",
+    temperature=0.7,
+    max_tokens=500
+)
 
 prompt = ChatPromptTemplate.from_messages([
     ("system", "Answer ONLY from the provided context. If not found, say you don't know."),
